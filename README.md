@@ -1,2 +1,2 @@
 # CrowbarDemoApp
-The demo app to show user behaviour vector representations
+A gradio app to show user behaviour vector representations
