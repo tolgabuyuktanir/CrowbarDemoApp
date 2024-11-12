@@ -43,6 +43,7 @@ class UserBehaviourGraphBasedEmbeddings():
         logger.info("Creating embeddings")
         embeddings = []
         for i in self.data:
+            print(model.wv[i])
             embeddings.append(np.mean(model.wv[i], axis=0).tolist())
         return embeddings
 

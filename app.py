@@ -1,3 +1,5 @@
+from email.policy import default
+
 import numpy as np
 import gradio as gr
 import pandas as pd
@@ -33,40 +35,45 @@ styler = df.style.highlight_max(color='lightgreen', axis=0)
 
 with gr.Blocks() as demo:
     file_input = gr.File(label="Upload your file")
+    gr.Examples([["example_data/first_100_dataset_session-based_isoweekofday_hour"]], inputs=[file_input])
     with gr.Row(variant="panel"):
         with gr.Accordion("Method selection", open=True):
             train_test_split_slider = gr.Slider(minimum=0, maximum=100, value=20, step=1, interactive=True,
                                                 label="% Testset Size")
+
             train_test_split_slider.change(lambda x: x, [train_test_split_slider])
             with gr.Row(variant="panel"):
                 with gr.Column():
                     with gr.Accordion("Prefetching Type", open=True):
-                        prefetching_type = [
-                            gr.CheckboxGroup(["User Data Analysis Based Prefetching", "Collective Data Analysis Based Prefetching"],
-                                             label="Prefetching Type")]
+                        prefetching_type = gr.Radio(["User Data Analysis Based Prefetching", "Collective Data Analysis Based Prefetching"],
+                                             label="Prefetching Type")
             with gr.Row(variant="panel"):
                 with gr.Column():
                     with gr.Accordion("Configuration of unsupervised methods", open=True):
-                        unsupervised_methods = [
-                            gr.CheckboxGroup(["PrefixSpan"], label="Unsupervised Methods")]
-                        unsupervised_methods_time_dependency = [
-                             gr.CheckboxGroup(["Time-dependent", "Time-independent"], label="Time Dependency")]
-                        unsupervised_method_conf = gr.CheckboxGroup(
+                        unsupervised_methods = gr.Radio(["PrefixSpan"], label="Unsupervised Methods",value=0)
+                        unsupervised_methods_time_dependency = gr.Radio(["Time-dependent", "Time-independent"], label="Time Dependency", value=1)
+                        unsupervised_method_conf = gr.Radio(
                              ["Real-time processing", "Batch-processing", "Hybrid-Processing"],
-                             label="Unsupervised Prefetching Methods")
+                             label="Unsupervised Prefetching Methods", value=1)
 
             with gr.Row(variant="panel"):
                 with gr.Column():
                     with gr.Accordion("Configuration of supervised methods", open=True):
-                        supervised_methods = [
-                            gr.CheckboxGroup(["KNN", "DecisionTree", "MLP", "RandomForest", "LSTM", "BiLSTM"],
-                                             label="Supervised Methods")]
+                        supervised_methods = gr.Radio(["KNN", "DecisionTree", "MLP", "RandomForest", "LSTM", "BiLSTM"],
+                                             label="Supervised Methods", value=3)
                         vector_presentation = gr.Radio(["Word2Vec", "Node2Vec", "Deep Walk", "LSTM Encoder",
-                                                        "Transformers"], label="Vector Presentation Method")
+                                                        "Transformers"], label="Vector Presentation Method", value=3)
     with gr.Row(variant="panel"):
         with gr.Column():
             btn_train = gr.Button(value="Train", icon="files/train_icon.png")
             progress_bar = gr.Progress()
+            btn_train.click(
+                fn=train_model,
+                inputs=[file_input, train_test_split_slider, prefetching_type, unsupervised_methods,
+                        unsupervised_methods_time_dependency, unsupervised_method_conf, supervised_methods,
+                        vector_presentation],
+                outputs=[gr.Textbox(label="Training Output")], show_progress="full")
+
     with gr.Row(variant="panel"):
         cache_size = gr.Slider(minimum=0, maximum=1000, value=200, step=1, interactive=True,
                                             label="Cache Size Setting")
@@ -77,10 +84,7 @@ with gr.Blocks() as demo:
             gr.Dataframe(styler)
         with gr.Column():
             gr.Plot()
-    btn_train.click(
-        fn=train_model,
-        inputs=[file_input],
-        outputs=[gr.Textbox(label="Training Output")])
 
 if __name__ == "__main__":
+    print(file_input.value)
     demo.launch(share=False)

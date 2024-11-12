@@ -18,26 +18,32 @@ def parse_line(line):
     
     return sequences
 
-def create_dataset(path, max_len):
+def create_dataset(path, user_id=None, max_len=4):
     lines = read_file(path)
     parsed_data = []
     for line in lines:
-        parsed_data.append([l[7:10] for l in parse_line(line)])
+        if user_id is None:
+            parsed_data.append([l[7:10] for l in parse_line(line)])
+        else:
+            if user_id == line[0][0:6]:
+                parsed_data.append([l[7:10] for l in parse_line(line)])
     queue = deque([0, 0, 0, 0, 0, 0, 0], maxlen=max_len)
     padded_sequences = []
     tokenizer = Tokenizer()
     tokenizer.fit_on_texts(parsed_data)
     sequences = tokenizer.texts_to_sequences(parsed_data)
     print(sequences[0])
-    padded_sequences = pad_sequences(sequences, padding='pre', maxlen=4)
-    # for i in sequences:
-    #    for j in i:
-    #        queue.append(j)
-    #        padded_sequences.append(list(queue))
-    #    queue = deque([0, 0, 0, 0, 0, 0, 0], maxlen=4)
+    #padded_sequences = pad_sequences(sequences, padding='pre', maxlen=4)
+    for i in sequences:
+       for j in i:
+           queue.append(j)
+           padded_sequences.append(list(queue))
+       queue = deque([0, 0, 0, 0, 0, 0, 0], maxlen=4)
     print(padded_sequences[:5])
     # Split data into features and labels (if applicable)
     X = np.array([seq[:-1] for seq in padded_sequences])  # Example only, adjust as per your actual data
     y = np.array([seq[-1] for seq in padded_sequences])  # Example only, adjust as per your actual data
 
     return X, y
+
+
