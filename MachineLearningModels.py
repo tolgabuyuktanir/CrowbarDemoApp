@@ -18,14 +18,13 @@ def train_models(X_train, y_train, model_name):
         model = RandomForestClassifier()
     else:
         raise ValueError("Invalid model name")
-    print(y_train)
     model.fit(X_train, y_train)
     return model
 
 def test_models(model, X_test, y_test):
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
-    confusion = confusion_matrix(y_test, y_pred)
-    classification = classification_report(y_test, y_pred)
-    roc_auc = roc_auc_score(y_test, y_pred)
-    return y_pred,accuracy, confusion, classification, roc_auc
+    cm = confusion_matrix(y_test, y_pred)
+    cr = classification_report(y_test, y_pred)
+     # roc_auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
+    return y_pred,accuracy, cm, cr

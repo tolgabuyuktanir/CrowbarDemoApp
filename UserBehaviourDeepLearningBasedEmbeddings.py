@@ -39,7 +39,7 @@ class UserBehaviourDeepLearningBasedEmbeddings():
         logger.info("LSTMEncoder")
         X = self.data
         # Define the model
-        input_dim = 3
+        input_dim = X.shape[1]
         latent_dim = 64
         timesteps = 1  # Since each data point is a single timestep
 
@@ -47,6 +47,4 @@ class UserBehaviourDeepLearningBasedEmbeddings():
         encoded = LSTM(latent_dim, return_state=False)(inputs)
         encoder_model = Model(inputs, encoded)
 
-        # Prepare data for the LSTM
-        X = np.expand_dims(X, axis=1)  # Make it (samples, timesteps, features)
         return encoder_model
