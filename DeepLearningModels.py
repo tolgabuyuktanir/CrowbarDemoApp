@@ -5,10 +5,10 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout, Bidirectional
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, roc_auc_score, ConfusionMatrixDisplay
 
 #train lstm and bilstm
-def train_models(X_train, y_train, model_name, epoch=10):
+def train_models(X_train, y_train, unique_y_shape, model_name, epoch=10):
     X_train = np.array(X_train)
     X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
-    y_train_cat = to_categorical(y_train, num_classes=np.unique(y).shape[0])
+    y_train_cat = to_categorical(y_train, num_classes=unique_y_shape+1)
     if model_name == "LSTM":
         model = Sequential([
             LSTM(64, return_sequences=True, input_shape=(X_train.shape[1], X_train.shape[2])),
@@ -50,7 +50,7 @@ def test_models(model, X_test, y_test):
         y_pred.append(np.argmax(prediction))
     accuracy = accuracy_score(y_test, y_pred)
     confusion = confusion_matrix(y_test, y_pred)
-    classification = classification_report(y_test, y_pred)
-    roc_auc = roc_auc_score(y_test, y_pred)
-    return y_pred, accuracy, confusion, classification, roc_auc
+    classification = classification_report(y_test, y_pred, output_dict=True)
+    # roc_auc = roc_auc_score(y_test, y_pred)
+    return y_pred, accuracy, confusion, classification
 

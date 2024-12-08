@@ -1,3 +1,4 @@
+from cProfile import label
 from email.policy import default
 
 import numpy as np
@@ -75,14 +76,16 @@ with gr.Blocks() as demo:
         with gr.Column():
             btn_train = gr.Button(value="Train", icon="files/train_icon.png")
             progress_bar = gr.Progress()
-            test = gr.Textbox(label="Training Output")
-
-            btn_train.click(
-                fn=train_model,
-                inputs=[file_input, train_test_split_slider, prefetching_type, supervised_or_unsupervised, unsupervised_methods,
-                        unsupervised_methods_time_dependency, unsupervised_method_conf, supervised_methods,
-                        vector_presentation],
-                outputs=[test, gr.Plot(label="Confusion Matrix")], show_progress="full")
+            training_result = gr.Textbox(label="Training Output")
+            cr   = gr.DataFrame(show_label=True, label="Classification Report", headers=["precision", "recall", "f1-score", "support"], )
+            cm_fig = gr.Plot(label="Confusion Matrix")
+        btn_train.click(
+            fn=train_model,
+            inputs=[file_input, train_test_split_slider, prefetching_type, supervised_or_unsupervised,
+                    unsupervised_methods,
+                    unsupervised_methods_time_dependency, unsupervised_method_conf, supervised_methods,
+                    vector_presentation],
+            outputs=[training_result, cr, cm_fig], show_progress="full")
 
 
     with gr.Row(variant="panel"):

@@ -18,12 +18,14 @@ def parse_line(line):
     
     return sequences
 
-def create_dataset(path, user_id=None, max_len=4):
+def create_dataset(path, user_id=None, max_len=4, time_dependency=False):
     lines = read_file(path)
     parsed_data = []
     for line in lines:
         if user_id is None:
             parsed_data.append([l[7:10] for l in parse_line(line)])
+        elif time_dependency:
+            parsed_data.append([l[7:12] for l in parse_line(line)])
         else:
             if user_id == line[0][0:6]:
                 parsed_data.append([l[7:10] for l in parse_line(line)])

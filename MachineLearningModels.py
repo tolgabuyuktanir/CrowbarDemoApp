@@ -1,3 +1,5 @@
+from operator import index
+
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, roc_auc_score, ConfusionMatrixDisplay
 from sklearn.ensemble import  RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
@@ -25,6 +27,6 @@ def test_models(model, X_test, y_test):
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
     cm = confusion_matrix(y_test, y_pred)
-    cr = classification_report(y_test, y_pred)
+    cr = classification_report(y_test, y_pred, output_dict=True)
      # roc_auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
     return y_pred,accuracy, cm, cr
