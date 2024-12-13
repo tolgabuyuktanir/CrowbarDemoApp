@@ -10,15 +10,18 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 import pickle
 from prefixspan import PrefixSpan
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, roc_auc_score, ConfusionMatrixDisplay
 
 X, y, X_train, X_test, y_train, y_test = None, None, None, None, None, None
 model = None
-def train_unsupervide_methods(file_input, train_test_split_slider, unsupervised_methods_time_dependency, unsupervised_method_conf):
+y_pred = []
+def train_unsupervised_methods(unsupervised_methods_time_dependency, unsupervised_method_conf):
     global X, y, X_train, X_test, y_train, y_test
     ps = PrefixSpan(X_train)
     min_support = 1
     frequent_patterns = ps.frequent(min_support)
-    patterns = [pattern for pattern in frequent_patterns if len(pattern[1]) >= 2]
+    patterns = [pattern for pattern in frequent_patterns if len(pattern[1]) == 3]
+    print(patterns)
     sorted_patterns = sorted(patterns, key=lambda x: x[0], reverse=True)
     return sorted_patterns
 
@@ -35,41 +38,43 @@ def train_model(file_input, train_test_split_slider, prefetching_type, supervise
     else:
         X, y = create_dataset(file_input, user_id=None, max_len=4)
 
-    if vector_presentation == "Word2Vec":
+    if vector_presentation == "Word2Vec" and supervised_or_unsupervised == "Supervised":
         userBehaviourEmbedding = UserBehaviourGraphBasedEmbeddings(X)
         word2vec_model = userBehaviourEmbedding.forwardWord2Vec()
         X = userBehaviourEmbedding.createEmbeddigns(word2vec_model)
-    elif vector_presentation == "Node2Vec":
+    elif vector_presentation == "Node2Vec" and supervised_or_unsupervised == "Supervised":
         userBehaviourEmbedding = UserBehaviourGraphBasedEmbeddings(X)
         node2vec_model = userBehaviourEmbedding.forwardNode2Vec()
         X = userBehaviourEmbedding.createEmbeddigns(node2vec_model)
-    elif vector_presentation == "Deep Walk":
+    elif vector_presentation == "Deep Walk" and supervised_or_unsupervised == "Supervised":
         userBehaviourEmbedding = UserBehaviourGraphBasedEmbeddings(X)
         deepwalk_model = userBehaviourEmbedding.forwardDeepWalk()
         X = userBehaviourEmbedding.createEmbeddigns(deepwalk_model)
-    elif vector_presentation == "LSTM Encoder":
+    elif vector_presentation == "LSTM Encoder" and supervised_or_unsupervised == "Supervised":
         userBehaviourEmbedding = UserBehaviourDeepLearningBasedEmbeddings(X)
         lstm_encoder_model = userBehaviourEmbedding.forwardLSTMEncoder()
         # Prepare data for the LSTM
         X = np.expand_dims(X, axis=1)  # Make it (samples, timesteps, features)
         X = lstm_encoder_model.predict(X)
-    else:
+    elif vector_presentation == "Transformers" and supervised_or_unsupervised == "Supervised":
         userBehaviourEmbedding = UserBehaviourDeepLearningBasedEmbeddings(X)
         transformer_model = userBehaviourEmbedding.forwardAutoEncoder()
         X = transformer_model.predict(X)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=train_test_split_slider/100, random_state=42)
-
-    if unsupervised_methods == ["PrefixSpan"]:
-        unsupervised_models = train_unsupervide_methods(unsupervised_methods_time_dependency, unsupervised_method_conf)
-        print(unsupervised_models)
-
-    if supervised_methods in ["LSTM", "BiLSTM"]:
+    if unsupervised_methods in ["PrefixSpan"] and supervised_or_unsupervised == "Unsupervised":
+        model = train_unsupervised_methods(unsupervised_methods_time_dependency, unsupervised_method_conf)
+    elif supervised_methods in ["LSTM", "BiLSTM"] and supervised_or_unsupervised == "Supervised":
         print(np.unique(y).shape[0])
         model  = dlm.train_models(X_train, y_train, np.unique(y).shape[0], supervised_methods)
-    else:
+    elif supervised_or_unsupervised == "Supervised":
         model = mlm.train_models(X_train, y_train, supervised_methods)
-    y_pred, accuracy, cm, cr = test_model(supervised_methods)
+
+    if supervised_or_unsupervised == "Supervised":
+        y_pred, accuracy, cm, cr = test_model(supervised_methods)
+    else:
+        y_pred, accuracy, cm, cr = test_unsupervised_model(unsupervised_methods)
+        model = "PrefixSpan"
     plt.figure(figsize=(15, 12))
     disp = ConfusionMatrixDisplay(confusion_matrix=cm)
     disp.plot(cmap=plt.cm.Oranges)
@@ -83,6 +88,23 @@ def test_model(supervised_methods):
         y_pred, accuracy, cm, cr = dlm.test_models(model, X_test, y_test)
     else:
         y_pred, accuracy, cm, cr = mlm.test_models(model, X_test, y_test)
+    return y_pred, accuracy, cm, cr
+
+def test_unsupervised_model(unsupervised_methods):
+    y_pred.clear()
+    global model, X_test, y_test
+    X_train_ps = set(tuple(i[1][:-1]) for i in model)
+    y_train_ps = [i[1][-1] for i in model]
+    correct = 0
+    for i in X_test:
+        if tuple(i[:-1]) in X_train_ps:
+            y_pred.append(y_train_ps[list(X_train_ps).index(tuple(i[:-1]))])
+        else:
+            y_pred.append(-1)
+    accuracy = accuracy_score(y_test, y_pred)
+    cm = confusion_matrix(y_test, y_pred)
+    cr = classification_report(y_test, y_pred, output_dict=True)
+    # roc_auc = roc_auc_score(y_test, y_pred, multi_class='ovr')
     return y_pred, accuracy, cm, cr
 
 df = pd.DataFrame(columns=["Conf", "Cache hit", "Cache miss", "Total"])
@@ -104,11 +126,15 @@ def cache_hit_miss(prefetching_type, supervised_or_unsupervised, unsupervised_me
         if y_test[i] in cache:
             cache_hit += 1
         else:
-            if supervised_methods in ["LSTM", "BiLSTM"]:
+            if supervised_methods in ["LSTM", "BiLSTM"] and supervised_or_unsupervised == "Supervised":
                 print(X_test[i].shape)
                 pred = np.argmax(model.predict(np.array(X_test[i], dtype='float32').reshape(-1, 1, X_test.shape[1])))
-            else:
+            elif supervised_or_unsupervised == "Supervised":
                 pred = model.predict([X_test[i]])
+            else:
+                pred = y_pred[i]
+                if unsupervised_method_conf in ["Batch-processing", "Hybrid-Processing"]:
+                    cache.append(pred)
             if pred == y_test[i]:
                 cache_hit += 1
             else:
